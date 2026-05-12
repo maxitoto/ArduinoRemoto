@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # CONTENEDOR 1: Tu código de Python y Arduino
+  arduino-lab:
+    build: .
+    container_name: arduino_lab_container
+    ports:
+      - "5000:5000"
+    devices:
+      # AQUÍ CAMBIAR EL PUERTO!!! capoo
+      # Formato: "PUERTO_PC:PUERTO_CONTENEDOR"
+      # Ejemplo en Linux: "/dev/ttyACM0:/dev/ttyACM0"
+      # Ejemplo en Mac: "/dev/cu.usbmodem14101:/dev/cu.usbmodem14101"
+      - "/dev/ttyACM0:/dev/ttyACM0"
+    restart: always
+
+  # CONTENEDOR 2: El túnel a Internet (Descarga en segundos, no compila nada)
+  tunel-publico:
+    image: node:20-alpine
+    container_name: localtunnel_container
+    # npx ejecuta localtunnel apuntando al contenedor de arduino
+    command: npx --yes localtunnel --port 5000 --local-host arduino-lab --subdomain lab-arduino-tdf
+    depends_on:
+      - arduino-lab
+    restart: always

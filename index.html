@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Remoto - TDF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="contenedor-principal">
+        <header>
+            <h3 style="margin:0; font-size: 1rem;">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">terminal</span> 
+                CORE_ARDUINO_v1.0
+            </h3>
+            <div class="hud-mini">
+                <div>PROYECTO: <span id="hud-archivo">NINGUNO</span></div>
+                <div>STATUS: <span id="hud-estado">IDLE</span></div>
+            </div>
+        </header>
+
+        <div class="seccion-proceso">
+            <div class="timeline">
+                <div class="paso" id="paso-1">
+                    <div class="icono"><span class="material-symbols-outlined" style="font-size: 14px;">cloud_upload</span></div>
+                    <small>RECEPCIÓN</small>
+                </div>
+                <div class="paso" id="paso-2">
+                    <div class="icono"><span class="material-symbols-outlined" style="font-size: 14px;">memory</span></div>
+                    <small>COMPILACIÓN</small>
+                </div>
+                <div class="paso" id="paso-3">
+                    <div class="icono"><span class="material-symbols-outlined" style="font-size: 14px;">verified</span></div>
+                    <small>FLASH_USB</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="consola-container" id="consola">
+            <p style="color: #666;">// Sistema operativo iniciado. Esperando carga de archivos .ino...</p>
+        </div>
+
+        <footer>
+            <input type="file" id="inputArchivo" multiple accept=".ino" style="display: none;">
+            
+            <button class="btn-secundario" onclick="document.getElementById('inputArchivo').click()">
+                <span class="material-symbols-outlined">folder_open</span> CARGAR FUENTE
+            </button>
+            
+            <button class="btn-primario" id="btnEnviar" onclick="ejecutarProceso()" disabled>
+                <span class="material-symbols-outlined">bolt</span> EJECUTAR EN HARDWARE
+            </button>
+        </footer>
+    </div>
+
+    <script src="./scripts.js"></script>
+</body>
+</html>
