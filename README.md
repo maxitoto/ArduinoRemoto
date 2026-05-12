@@ -9,7 +9,7 @@
 4. **Acceso**:
    - El túnel se creará automáticamente en: https://lab-arduino-tdf.localtunnel.me
   
-## Cómo encuentra tu compañero su puerto rápidamente
+## Cómo encuentrar el puerto rápidamente
 
  ###  Si usa Windows:
 1. Que conecte el Arduino por USB.
@@ -17,7 +17,7 @@
 3. Que busque en la lista la sección que dice Puertos (COM y LPT) y la expanda.
 4. Ahí va a ver su placa listada claramente, por ejemplo: Arduino Mega 2560 (COM3) o USB Serial Device (COM4).
 
-### Si usa Mac (como vos):
+### Si usa Mac:
 
 1. Que conecte el Arduino.
 2. Que abra su terminal nativa y ejecute: ls /dev/cu.*
