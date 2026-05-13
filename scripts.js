@@ -12,27 +12,24 @@ function log(mensaje, color = "") {
 
 function setPaso(numero, estado) {
   const paso = document.getElementById(`paso-${numero}`);
-  paso.className = `paso ${estado}`;
+  if (paso) paso.className = `paso ${estado}`;
 }
 
 inputArchivo.addEventListener("change", (e) => {
   const archivos = e.target.files;
-
+  
+  // Limpiamos visuales para nueva carga
   setPaso(1, "");
   setPaso(2, "");
   setPaso(3, "");
   consola.innerHTML = "";
 
   if (archivos.length > 0) {
-    const nombre =
-      archivos.length === 1 ? archivos[0].name : `${archivos.length} archivos`;
-    document.getElementById("hud-archivo").textContent = nombre;
-    document.getElementById("hud-estado").textContent = "Listo para enviar";
+    const nombre = archivos.length === 1 ? archivos[0].name : `${archivos.length} archivos`;
+    document.getElementById("hud-archivo").textContent = nombre.toUpperCase();
+    document.getElementById("hud-estado").textContent = "LISTO";
     btnEnviar.disabled = false;
     log(`Archivos cargados: ${nombre}`);
-  } else {
-    btnEnviar.disabled = true;
-    document.getElementById("hud-archivo").textContent = "Ninguno";
   }
 });
 
@@ -48,84 +45,77 @@ async function ejecutarProceso() {
   }
 
   try {
-    // FASES INICIALES VISUALES
     setPaso(1, "activo");
-    document.getElementById("hud-estado").textContent = "Enviando...";
-    log("Enviando archivos...");
+    document.getElementById("hud-estado").textContent = "ENVIANDO...";
+    log("Subiendo código al servidor de cola...");
 
-    // LLAMADA A FLASK
     const response = await fetch("/upload", {
       method: "POST",
       body: formData,
+      headers: { "Bypass-Tunnel-Reminder": "true" }
     });
 
     const data = await response.json();
-    const motor = data.detalles; // Este es el diccionario gigante de Python
 
-    consola.innerHTML = ""; // Limpiamos consola
-
-    // --- PINTAR LOS LOGS DEL MOTOR ---
-    // Leemos etapa 1 (Preparación)
-    motor.etapa_preparacion.logs.forEach((l) => log(l, "#aaaaaa"));
-
-    // Leemos etapa 2 (Compilación)
-    if (motor.etapa_compilacion.logs.length > 0) {
-      motor.etapa_compilacion.logs.forEach((l) =>
-        log(
-          l,
-          motor.etapa_compilacion.estado === "error" ? "#ff4d4d" : "#ffffff",
-        ),
-      );
-    }
-
-    // Leemos etapa 3 (Subida)
-    if (motor.etapa_subida.logs.length > 0) {
-      motor.etapa_subida.logs.forEach((l) =>
-        log(l, motor.etapa_subida.estado === "error" ? "#ff4d4d" : "#a8ffcc"),
-      );
-    }
-
-    // --- PINTAR LOS CIRCULOS DEL TIMELINE ---
-    setPaso(1, motor.etapa_preparacion.estado === "exito" ? "exito" : "fallo");
-
-    if (motor.etapa_preparacion.estado === "exito") {
-      setPaso(
-        2,
-        motor.etapa_compilacion.estado === "exito"
-          ? "exito"
-          : motor.etapa_compilacion.estado === "error"
-            ? "fallo"
-            : "",
-      );
-    }
-
-    if (motor.etapa_compilacion.estado === "exito") {
-      setPaso(
-        3,
-        motor.etapa_subida.estado === "exito"
-          ? "exito"
-          : motor.etapa_subida.estado === "error"
-            ? "fallo"
-            : "",
-      );
-    }
-
-    // --- ESTADO FINAL DEL HUD ---
-    if (data.status === "success") {
-      document.getElementById("hud-estado").textContent = "¡Placa Programada!";
-      log("Proceso exitoso. El Arduino está corriendo tu código.", "#2ecc71");
+    if (data.status === "queued") {
+      setPaso(1, "exito");
+      log("------------------------------------------", "#555");
+      log(`¡TICKET EMITIDO! Tu posición inicial: ${data.posicion}`, "#007acc");
+      
+      // Iniciamos la vigilancia del ticket
+      monitorearTicket(data.ticket);
     } else {
-      document.getElementById("hud-estado").textContent = "Error en el Motor";
-      log("El proceso se detuvo por errores.", "#e74c3c");
+      throw new Error(data.message || "Error al encolar");
     }
   } catch (error) {
     setPaso(1, "fallo");
-    setPaso(2, "fallo");
-    setPaso(3, "fallo");
-    document.getElementById("hud-estado").textContent = "Fallo de Conexión";
-    log("Error Crítico: ¿Se apagó el servidor Python?", "#e74c3c");
-    console.error(error);
-  } finally {
+    log(`Error Crítico: ${error.message}`, "#e74c3c");
     btnEnviar.disabled = false;
+  }
+}
+
+// NUEVA FUNCIÓN: Pregunta al servidor cada 3 segundos
+async function monitorearTicket(ticket) {
+  try {
+    const response = await fetch(`/status/${ticket}`, {
+      headers: { "Bypass-Tunnel-Reminder": "true" }
+    });
+    const data = await response.json();
+
+    if (data.estado === "en_cola") {
+      document.getElementById("hud-estado").textContent = "EN COLA...";
+      setTimeout(() => monitorearTicket(ticket), 3000); // Vuelve a preguntar en 3s
+      
+    } else if (data.estado === "procesando") {
+      document.getElementById("hud-estado").textContent = "PROCESANDO";
+      setPaso(2, "activo");
+      log("⏳ Tu código está siendo procesado por el hardware...", "#e67e22");
+      setTimeout(() => monitorearTicket(ticket), 3000); // Sigue preguntando
+      
+    } else if (data.estado === "exito") {
+      document.getElementById("hud-estado").textContent = "FLASHEADO";
+      setPaso(2, "exito");
+      setPaso(3, "exito");
+      log("------------------------------------------", "#555");
+      log("✅ CÓDIGO SUBIDO AL ARDUINO EXITOSAMENTE", "#2ecc71");
+      log("El hardware estará ejecutando tu código por 60 segundos.", "#aaaaaa");
+      btnEnviar.disabled = false; // Liberamos el botón
+      
+    } else if (data.estado === "error") {
+      document.getElementById("hud-estado").textContent = "ERROR MOTOR";
+      setPaso(2, "fallo");
+      setPaso(3, "fallo");
+      log("❌ Error en la compilación o subida:", "#e74c3c");
+      
+      // Imprimimos el detalle del motor si existe
+      if (data.detalles && data.detalles.etapa_compilacion) {
+          data.detalles.etapa_compilacion.logs.forEach(l => log(l, "#e74c3c"));
+      }
+      btnEnviar.disabled = false;
+    }
+
+  } catch (error) {
+    log("Error al consultar estado: " + error.message, "#e74c3c");
+    setTimeout(() => monitorearTicket(ticket), 5000);
   }
 }

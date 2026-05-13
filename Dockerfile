@@ -32,4 +32,4 @@ COPY . .
 EXPOSE 5000
 
 # Iniciamos el servidor directamente con Python
-CMD ["python", "server.py"]
+CMD ["python","-u", "server.py"]
