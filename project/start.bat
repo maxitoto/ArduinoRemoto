@@ -5,15 +5,6 @@ echo ---------------------------------------------------
 echo 🚀 INICIANDO SERVIDORES DEL LABORATORIO (Windows)
 echo ---------------------------------------------------
 
-:: 1. Activación del Entorno Virtual
-if exist .venv (
-    call .venv\Scripts\activate
-) else (
-    echo ❌ Error: No se detecto el entorno virtual (.venv).
-    echo Revisa las instrucciones de instalacion en el README.md.
-    pause
-    exit /b
-)
 
 :: 2. Detección de Hardware (Buscamos puertos COM)
 echo 🔍 Buscando Arduino fisico...
@@ -44,4 +35,4 @@ if %errorlevel% neq 0 (
 )
 
 echo 🔗 Generando URL publica...
-npx -y localtunnel --port 5000 --subdomain lab-tdf
+npx -y localtunnel --port 5000 --subdomain lab-untdf-arduino-srt
