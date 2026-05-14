@@ -2,11 +2,11 @@ FROM python:3.12-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Solo instalamos 'curl' porque lo necesitamos para bajar arduino-cli
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Instalamos curl y socat
+RUN apt-get update && apt-get install -y curl socat && rm -rf /var/lib/apt/lists/*
 
 # Instalar arduino-cli
-RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
 
 # Configurar Cores de Arduino
 RUN arduino-cli core update-index && \
@@ -32,4 +32,4 @@ COPY . .
 EXPOSE 5000
 
 # Iniciamos el servidor directamente con Python
-CMD ["python","-u", "server.py"]
+CMD ["python", "-u", "server/server.py"]

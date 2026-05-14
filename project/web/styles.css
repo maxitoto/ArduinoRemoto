@@ -123,7 +123,7 @@ header {
 
 /* SECCIÓN CENTRAL: La Consola Gigante */
 .consola-container {
-  flex-grow: 1; /* Esto hace que ocupe todo el espacio disponible */
+  flex-grow: 1; 
   background: #000;
   padding: 20px;
   overflow-y: auto;
@@ -167,9 +167,10 @@ button {
 .btn-primario {
   background: var(--primary);
   color: white;
+  transition: background 0.3s ease;
 }
 .btn-primario:hover:not(:disabled) {
-  background: var(--primary-hover);
+  filter: brightness(1.1);
 }
 .btn-primario:disabled {
   opacity: 0.3;
