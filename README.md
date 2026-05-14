@@ -1,6 +1,5 @@
 Aquí tenés el `README.md` reescrito desde cero. Quedó estructurado como un manual profesional, separando claramente los dos caminos (Nativo vs. Docker) y detallando paso a paso todo lo que sacamos del script de arranque.
 
-```markdown
 # 🛠️ Laboratorio Remoto TDF - Arquitectura Distribuida
 
 Este repositorio contiene la infraestructura necesaria para desplegar el laboratorio remoto de hardware. Para garantizar el acceso directo a los dispositivos físicos, el sistema utiliza **ejecución nativa en macOS** y **contenedores aislados en Linux**.
@@ -73,6 +72,33 @@ docker compose up --build
 ```
 
 *(Nota: Asegúrate de que tu usuario de Linux pertenezca al grupo `dialout` para evitar errores de permisos sobre el puerto).*
+
+---
+
+### 🪟 Usuarios de Windows (Modo Nativo)
+
+En Windows, se recomienda la ejecución nativa para evitar problemas de permisos con los puertos COM en Docker Desktop.
+
+**Paso 1: Instalación de Dependencias (Solo la primera vez)**
+1. Descarga e instala [Python 3.12+](https://www.python.org/) (Asegúrate de marcar "Add Python to PATH").
+2. Descarga e instala [Node.js](https://nodejs.org/) (para el túnel remoto).
+3. Instala `arduino-cli` siguiendo la [guía oficial](https://arduino.github.io/arduino-cli/latest/installation/) y agrégalo al PATH de tu sistema.
+
+Luego, abre una terminal en la carpeta del proyecto y ejecuta:
+
+```batch
+# 1. Configurar núcleos de Arduino
+arduino-cli core update-index
+arduino-cli core install arduino:avr@1.8.7
+
+# 2. Instalar librerías de hardware
+for /f "tokens=*" %i in (libraries.txt) do arduino-cli lib install "%i"
+
+# 3. Crear entorno virtual y dependencias
+python -m venv .venv
+call .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
 ---
 
