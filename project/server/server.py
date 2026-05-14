@@ -6,7 +6,7 @@ import uuid
 import serial
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
-from ArduinoRemoto.project.server.motor import procesar_archivos_arduino, obtener_puerto_actual
+from motor import procesar_archivos_arduino, obtener_puerto_actual
 
 ruta_actual = os.path.dirname(os.path.abspath(__file__))
 ruta_web = os.path.abspath(os.path.join(ruta_actual, '..', 'web'))
