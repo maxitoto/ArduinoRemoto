@@ -1,52 +1,84 @@
 #!/bin/bash
 
+# =====================================================================
+# 🍎 NATIVE MODE - AUTO-INSTALLER & START (macOS ONLY)
+# =====================================================================
+# Este script automatiza la instalación de arduino-cli, librerías
+# de hardware y dependencias de Python directamente en tu macOS.
+# =====================================================================
+
 echo "---------------------------------------------------"
-echo "🛠️  INICIANDO LABORATORIO REMOTO TDF  🛠️"
+echo "🍎 INICIANDO CONFIGURACIÓN NATIVA (macOS)"
 echo "---------------------------------------------------"
 
-echo "🔍 1. Detectando el Sistema Operativo Anfitrión..."
-OS_NAME=$(uname -s)
-SERVICIO_DOCKER=""
+# 1. Verificar/Instalar Homebrew (Gestor de paquetes de Mac)
+if ! command -v brew &> /dev/null; then
+    echo "🍺 Homebrew no detectado. Instalándolo ahora..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
-# Evaluamos qué sistema operativo está corriendo el script
-if [[ "$OS_NAME" == "Darwin" ]]; then
-    echo "🍎 Sistema detectado: macOS"
-    SERVICIO_DOCKER="lab-mac"
+# 2. Instalar herramientas de sistema (Equivalente al apt-get del Docker)
+echo "🛠️  Verificando herramientas de sistema (socat)..."
+if ! command -v socat &> /dev/null; then
+    brew install socat
+fi
 
-elif [[ "$OS_NAME" == "Linux" ]]; then
-    # Un pequeño truco: Windows con WSL2 se hace pasar por Linux. 
-    # Leemos el archivo version para ver si dice "Microsoft" o "WSL".
-    if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null; then
-        echo "🪟 Sistema detectado: Windows (WSL2)"
-        SERVICIO_DOCKER="lab-windows"
-    else
-        echo "🐧 Sistema detectado: Linux nativo"
-        SERVICIO_DOCKER="lab-linux"
-    fi
+# 3. Instalar arduino-cli (Equivalente a la línea 8 del Dockerfile)
+echo "🤖 Verificando arduino-cli..."
+if ! command -v arduino-cli &> /dev/null; then
+    echo "📥 Instalando arduino-cli vía Homebrew..."
+    brew install arduino-cli
+fi
+
+echo "⚙️  Sincronizando núcleos de Arduino..."
+arduino-cli core update-index
+arduino-cli core install arduino:avr@1.8.7
+
+echo "📚 Instalando librerías desde libraries.txt..."
+if [ -f "libraries.txt" ]; then
+    # Leemos el archivo y quitamos posibles espacios en blanco o saltos de línea raros
+    while IFS= read -r linea || [ -n "$linea" ]; do
+        # Evitamos líneas vacías
+        if [ ! -z "$linea" ]; then
+            echo "Installing: $linea"
+            arduino-cli lib install "$linea"
+        fi
+    done < libraries.txt
 else
-    echo "⚠️ Sistema Operativo no reconocido ($OS_NAME). Usando Linux por defecto."
-    SERVICIO_DOCKER="lab-linux"
+    echo "⚠️  Archivo libraries.txt no encontrado. Saltando paso."
+fi 
+
+# 5. Configurar Python y Flask
+if [ ! -d ".venv" ]; then
+    echo "📦 Creando entorno virtual .venv..."
+    python3 -m venv .venv
 fi
 
-echo "🔍 2. Buscando Arduino físico conectado..."
-# Buscamos en las rutas típicas de Mac y Linux/Windows
-PUERTO_DETECTADO=$(ls /dev/cu.usbmodem* /dev/ttyUSB* /dev/ttyACM* 2>/dev/null | head -n 1)
+source .venv/bin/activate
+echo "🐍 Instalando dependencias de Python..."
+pip install --upgrade pip
+pip install -r requirements.txt
 
-if [ -z "$PUERTO_DETECTADO" ]; then
-    echo "❌ Error: No se encontró ningún hardware conectado."
-    echo "Por favor, enchufá la placa USB y volvé a ejecutar el script."
-    exit 1
+# 6. Detección de Hardware y Arranque
+echo "🔍 Buscando Arduino físico..."
+PUERTO=$(python3 -c "import glob; ports=glob.glob('/dev/cu.usbmodem*'); print(ports[0] if ports else '')")
+
+if [ -z "$PUERTO" ]; then
+    echo "⚠️  ATENCIÓN: No se detectó Arduino. Por favor conéctalo."
+else
+    echo "✅ Arduino detectado en: $PUERTO"
+    export PORT_ARDUINO=$PUERTO
 fi
 
-echo "✅ Arduino detectado en el puerto: $PUERTO_DETECTADO"
+echo "🚀 Iniciando Servidor Flask..."
+# Se ejecuta en background (&) para liberar la terminal
+python3 server/server.py & 
 
-echo "🔗 Abriendo túnel SOCAT en la Mac (Puerto TCP 3333)..."
-# Matamos cualquier túnel viejo que haya quedado abierto
-killall socat 2>/dev/null
-
-# La Mac agarra el cable físico y lo sirve crudo por el puerto TCP 3333 en segundo plano (&)
-socat file:$PUERTO_DETECTADO,rawer tcp:127.0.0.1:3333,retry=15,interval=1 &
-
-echo "🚀 Levantando infraestructura en Docker..."
-# Ya no pasamos la variable acá, dejamos que docker-compose se encargue
-docker compose up --build lab-mac localtunnel
+echo "🔗 Iniciando túnel público..."
+sleep 2
+# Verificamos si existe npx (viene con Node.js)
+if command -v npx &> /dev/null; then
+    npx localtunnel --port 5000 --subdomain lab-tdf
+else
+    echo "❌ Error: Node.js/npm no instalado. No se pudo iniciar localtunnel."
+fi

@@ -1,13 +1,13 @@
-# ejecutar el comando: docker compose up --build localtunnel --build lab-tuSO
 services:
-  # --- SERVICIO PARA LINUX ---
-  lab-linux:
+  # --- SERVIDOR PRINCIPAL (SOLO PARA LINUX) ---
+  arduino-lab:
     build: .
-    container_name: arduino-lab-linux
+    container_name: arduino-lab
     ports:
       - "5000:5000"
     devices:
       - "${PORT_ARDUINO}:${PORT_ARDUINO}"
+    # Permisos para que Docker pueda usar el puerto serie
     group_add:
       - dialout
     environment:
@@ -16,46 +16,10 @@ services:
     volumes:
       - .:/app
 
-  # --- SERVICIO PARA WINDOWS (WSL2) ---
-  lab-windows:
-    build: .
-    container_name: arduino-lab-windows
-    ports:
-      - "5000:5000"
-    devices:
-      - "${PORT_ARDUINO}:/dev/ttyACM0"
-    environment:
-      - PORT_ARDUINO=/dev/ttyACM0
-      - FLASK_ENV=development
-    volumes:
-      - .:/app
-
-  # --- SERVICIO PARA MAC ---
-  lab-mac:
-    build: .
-    container_name: arduino-lab-mac
-    ports:
-      - "5000:5000"
-      - "3333:3333"
-    privileged: true
-    environment:
-      - PORT_ARDUINO=/dev/ttyVIRTUAL
-      - FLASK_ENV=development
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: bash -c "socat pty,link=/dev/ttyVIRTUAL,raw tcp:host.docker.internal:3333 & python -u server/server.py"
-    volumes:
-      - .:/app
-
-
+  # --- TÚNEL PÚBLICO ---
   localtunnel:
     image: node:18-alpine
     container_name: arduino-tunnel
-    # Ejecuta localtunnel apuntando al subdominio que configuraste en tu script de ataque
-    command: npx localtunnel --port 5000 --subdomain lab-tdf --local-host host.docker.internal
-    # Esto asegura que host.docker.internal funcione en Mac, Windows y Linux por igual
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    # Le decimos que no intente arrancar si el backend no está corriendo
+    command: npx localtunnel --port 5000 --subdomain lab-tdf --local-host arduino-lab
     depends_on:
-      - lab-mac  # Cambiar a lab-linux si lo corrés en el servidor
+      - arduino-lab
